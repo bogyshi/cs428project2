@@ -1,0 +1,56 @@
+Eric Inkelis and Alexander Van Roijen presents...
+For N nodes, there are 2*N forks for a total of 2*N +1  processes, +1 for main process / testing
+PROJECT 2!
+
+Files needed:
+
+node.hpp:
+Node class,
+Members:
+	Node ID
+	host name
+	control port socket *
+	data port socket *
+	routingTable vector<triplet> (* needs to be locked due to race conditions)
+Constructor:
+	(int id, string hostname, string ..)
+	fork()
+		do data socket stuff
+	else:
+		do routing socket stuff
+hanleData(using select, recieves routing data, or actual data, or send routing data or actual data)
+void UpdateRoutingTable(given new routing data, update corresponding table)
+void readRoutingTable
+int generatePacket(node ID y)
+int createLink(node ID y) // calls update routing table
+int removeLink(node ID y) // calls update routing table
+node.cpp
+test.hpp
+"generate-packet 1 2"
+main(read config file, which creates nodes, nodes[0] = nodeID 1,
+parseConfigFile(file f):
+		     for each l in f.readLines():
+		     	 createNode(atoi(l.substring(...)),)
+nodes[x-1].generatepacket(y-1) // tell node ID x to send packet to node y
+nodes[x-1].createLink(y-1) //tell node ID x to create a new link to node y
+nodes[x-1].removeLink(y-1) // tell node IDx to remove link to node y
+test.cpp
+
+for each node in confif:
+    fork()
+	createNode
+    continue
+waitForUserInput()
+
+
+createNode(int nodeID, string remoteSession , vector<int> neighboors):
+	       sockaddr_in * temp; // might need malloc or new
+		getHostByName(remoteSession,temp,...) // gets ip for our desired remote session
+		controSocket = socket(0,UDPTYPE) // creates socket for either control or data
+		dataSocket = socket(0,UDPTYPE)
+		bind(controlSocket,temp.s_addr) // pass socket and IP of desired remote session given by config file
+		bind(dataSocket,temp.s_addr)
+		fork(..)
+			Node(int nodeID, socket controlSocket, socket dataSocket, vector<triplets> neighboors, string remoteSession)
+		else
+		 goto NextIter
