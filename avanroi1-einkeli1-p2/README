@@ -1,5 +1,13 @@
 Eric Inkelis and Alexander Van Roijen presents...
-For N nodes, there are 2*N forks for a total of 2*N +1  processes, +1 for main process / testing
+
+NO FORKS! We actually ssh into different remote sessions and start each node listed in the config file manually.
+
+ex NodeID 1, Remote = 02, Control = 5001 Data = 5002, neighboor 1 = Node 3 ...
+translation ./node 1 remote02.cs.binghamton.edu 5001 5002 config.txt
+also pass to Node class filename for config file,
+during its execution itll read through its own row to determine its neighboors and then go to their respective rows to grab their remote names.
+Ex node 3 is on remote05.cs.binghamton.edu on ports 2314 and 6098
+
 PROJECT 2!
 
 Files needed:
@@ -14,16 +22,13 @@ Members:
 	routingTable vector<triplet> (* needs to be locked due to race conditions)
 Constructor:
 	(int id, string hostname, string ..)
-	fork()
-		do data socket stuff
-	else:
-		do routing socket stuff
+	use pthread library to start a thread for control and another for data
 hanleData(using select, recieves routing data, or actual data, or send routing data or actual data)
-void UpdateRoutingTable(given new routing data, update corresponding table)
-void readRoutingTable
+void UpdateRoutingTable(given new routing data, update corresponding table) //needs a lock
+void readRoutingTable // locked by the same mechanism as above, cant read or update unless its open
 int generatePacket(node ID y)
-int createLink(node ID y) // calls update routing table
-int removeLink(node ID y) // calls update routing table
+int createLink(node ID y) // causes nodes to update their routing tables
+int removeLink(node ID y) // causes nodes to update their routing tables
 node.cpp
 test.hpp
 "generate-packet 1 2"
@@ -36,12 +41,22 @@ nodes[x-1].createLink(y-1) //tell node ID x to create a new link to node y
 nodes[x-1].removeLink(y-1) // tell node IDx to remove link to node y
 test.cpp
 
-for each node in confif:
-    fork()
-	createNode
-    continue
-waitForUserInput()
-
+for each node in config:
+   NOTHING
+   test.cpp just establishes a UDP connection upon receiving a request to send a message, or add/del a link
+   aka while true:
+       	     gets(...)
+	     see if udp connection has been established between test and node in question
+	         if udp connection already established, use socket already made
+		 if udp connection not established, create UDP conncetion
+       	     if(add)
+		createLink()
+	     if(del)
+	        deleteLink()
+	     if(send)
+		generatePacket()
+	     if("exit"\quit)
+	        exit(0)
 
 createNode(int nodeID, string remoteSession , vector<int> neighboors):
 	       sockaddr_in * temp; // might need malloc or new
@@ -50,7 +65,4 @@ createNode(int nodeID, string remoteSession , vector<int> neighboors):
 		dataSocket = socket(0,UDPTYPE)
 		bind(controlSocket,temp.s_addr) // pass socket and IP of desired remote session given by config file
 		bind(dataSocket,temp.s_addr)
-		fork(..)
-			Node(int nodeID, socket controlSocket, socket dataSocket, vector<triplets> neighboors, string remoteSession)
-		else
-		 goto NextIter
+		
