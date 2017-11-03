@@ -49,4 +49,5 @@ struct Node {
 
 
 int sendtext(int sd, char *msg);
+Node init(char * argv[]);
 std::vector<std::string> split(char delim,std::string s);

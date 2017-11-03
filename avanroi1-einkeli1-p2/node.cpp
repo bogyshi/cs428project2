@@ -4,12 +4,18 @@ using namespace std;
 
 //TO MAKE UDP SOCKET socket(AF_INET, SOCK_DGRAM, 0))
 
-int main(int argc, char * argv[])
+int main(int argc,char * argv[])
+{
+  Node me = init(argv);
+  return 1;
+}
+
+Node init(char * argv[])
 {
   string line;
   vector<string> configs;
   ifstream configfile (argv[2]);
-  Node us;
+  Node itsAme;
   bool isMade = false;
   int i = 0;
   PORTS temp;
@@ -23,24 +29,24 @@ int main(int argc, char * argv[])
 	  tempPort = stoi(configs[0]);
 	  temp.controlPort = stoi(configs[2]);
 	  temp.dataPort = stoi(configs[3]);
-	  us.mapPorts.insert(pair<int,PORTS>(tempPort,temp));
+	  itsAme.mapPorts.insert(pair<int,PORTS>(tempPort,temp));
 	  if(stoi(configs[0])==stoi(argv[1]))
 	    {
-	      us.id = stoi(configs[0]);
-	      us.hostName=configs[1];
-	      us.controlPort=stoi(configs[2]);
-	      us.dataPort=stoi(configs[3]);
+	      itsAme.id = stoi(configs[0]);
+	      itsAme.hostName=configs[1];
+	      itsAme.controlPort=stoi(configs[2]);
+	      itsAme.dataPort=stoi(configs[3]);
 	      while(4+i<configs.size())
 		{
 		  //cout<<configs[4+i];
-		  us.neighboors.push_back(stoi(configs[4+i]));
+		  itsAme.neighboors.push_back(stoi(configs[4+i]));
 		  i++;
 		}
 	      DV myself;
-	      myself.dest=us.id;
+	      myself.dest=itsAme.id;
 	      myself.cost=0;
 	      myself.nextHop=-1;//always through controlport
-	      us.DVT.push_back(myself);
+	      itsAme.DVT.push_back(myself);
 	      isMade=true;
 	    }
 	}
@@ -49,15 +55,20 @@ int main(int argc, char * argv[])
 	  cerr<<"NODE ID "<<stoi(argv[1])<<" is not available";
 	}
       i = 0;
-      for(;i<us.neighboors.size();++i)
+      for(;i<itsAme.neighboors.size();++i)
 	{
-	  
+	  DV neighbr;
+	  neighbr.dest=itsAme.neighboors[i];
+	  neighbr.cost=1;
+	  neighbr.nextHop=itsAme.neighboors[i];
+	  itsAme.DVT.push_back(neighbr);
 	}
     }
   else
     {
       cerr<<"FILE NOT AVAILABLE"<<argv[2];
     }
+  return itsAme;
 }
 
 vector<string> split(char delim,string s)

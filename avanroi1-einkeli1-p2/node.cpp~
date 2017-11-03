@@ -2,6 +2,8 @@
 
 using namespace std;
 
+//TO MAKE UDP SOCKET socket(AF_INET, SOCK_DGRAM, 0))
+
 int main(int argc, char * argv[])
 {
   string line;
@@ -10,12 +12,18 @@ int main(int argc, char * argv[])
   Node us;
   bool isMade = false;
   int i = 0;
+  PORTS temp;
+  int tempPort;
   if(configfile.is_open())
     {
       while(getline(configfile,line))
 	{
 	  configs = (split(',',line));
 	  i=0;
+	  tempPort = stoi(configs[0]);
+	  temp.controlPort = stoi(configs[2]);
+	  temp.dataPort = stoi(configs[3]);
+	  us.mapPorts.insert(pair<int,PORTS>(tempPort,temp));
 	  if(stoi(configs[0])==stoi(argv[1]))
 	    {
 	      us.id = stoi(configs[0]);
@@ -29,9 +37,9 @@ int main(int argc, char * argv[])
 		  i++;
 		}
 	      DV myself;
-	      myself.node=us.id;
+	      myself.dest=us.id;
 	      myself.cost=0;
-	      myself.port=us.controlPort;//always through controlport
+	      myself.nextHop=-1;//always through controlport
 	      us.DVT.push_back(myself);
 	      isMade=true;
 	    }
@@ -39,6 +47,11 @@ int main(int argc, char * argv[])
       if(isMade == false)
 	{
 	  cerr<<"NODE ID "<<stoi(argv[1])<<" is not available";
+	}
+      i = 0;
+      for(;i<us.neighboors.size();++i)
+	{
+	  
 	}
     }
   else

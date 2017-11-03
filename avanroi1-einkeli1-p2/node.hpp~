@@ -12,13 +12,23 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <map>
+
+#ifndef PORTS_H
+#define PORTS_H
+
+struct PORTS {
+  int controlPort;
+  int dataPort;
+};
+#endif
 
 #ifndef DV_H
 #define DV_H
 
 struct DV {
-  int node;
-  int port;
+  int dest;
+  int nextHop;
   int cost;
 };
 #endif
@@ -33,6 +43,7 @@ struct Node {
   int controlPort;
   std::string hostName;
   std::vector<DV> DVT;
+  std::map<int,PORTS> mapPorts;
 };
 #endif
 
