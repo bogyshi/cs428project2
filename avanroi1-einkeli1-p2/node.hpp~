@@ -13,16 +13,6 @@
 #include <fstream>
 #include <vector>
 
-#ifndef DV_H
-#define DV_H
-
-struct DV {
-  int node;
-  int port;
-  int cost;
-};
-#endif
-
 #ifndef NODE_H
 #define NODE_H
 
@@ -32,10 +22,8 @@ struct Node {
   int dataPort;
   int controlPort;
   std::string hostName;
-  std::vector<DV> DVT;
 };
 #endif
-
 
 int sendtext(int sd, char *msg);
 std::vector<std::string> split(char delim,std::string s);
