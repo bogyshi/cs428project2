@@ -8,24 +8,42 @@ int main(int argc, char * argv[])
   vector<string> configs;
   ifstream configfile (argv[2]);
   Node us;
+  bool isMade = false;
   int i = 0;
   if(configfile.is_open())
     {
       while(getline(configfile,line))
 	{
-	  i=0;
 	  configs = (split(',',line));
-	  us.id = stoi(configs[0]);
-	  us.hostName=configs[1];
-	  us.controlPort=stoi(configs[2]);
-	  us.dataPort=stoi(configs[3]);
-	  while(4+i<configs.size())
+	  i=0;
+	  if(stoi(configs[0])==stoi(argv[1]))
 	    {
-	      //cout<<configs[4+i];
-	      us.neighboors.push_back(stoi(configs[4+i]));
-	      i++;
+	      us.id = stoi(configs[0]);
+	      us.hostName=configs[1];
+	      us.controlPort=stoi(configs[2]);
+	      us.dataPort=stoi(configs[3]);
+	      while(4+i<configs.size())
+		{
+		  //cout<<configs[4+i];
+		  us.neighboors.push_back(stoi(configs[4+i]));
+		  i++;
+		}
+	      DV myself;
+	      myself.node=us.id;
+	      myself.cost=0;
+	      myself.port=us.controlPort;//always through controlport
+	      us.DVT.push_back(myself);
+	      isMade=true;
 	    }
 	}
+      if(isMade == false)
+	{
+	  cerr<<"NODE ID "<<stoi(argv[1])<<" is not available";
+	}
+    }
+  else
+    {
+      cerr<<"FILE NOT AVAILABLE"<<argv[2];
     }
 }
 
