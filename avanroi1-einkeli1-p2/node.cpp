@@ -7,6 +7,36 @@ using namespace std;
 int main(int argc,char * argv[])
 {
   Node me = init(argv);
+ 
+  int controlSock = socket(AF_INET, SOCK_DGRAM,0);//possibly make controlSock a member of Node
+  struct sockaddr_in sa2;
+  sa2.sin_family = AF_INET;
+  sa2.sin_port = htons(me.controlPort);//binds to port specified in node struct
+  sa2.sin_addr.s_addr = htonl(INADDR_ANY);//allows communicaiton from any IP
+  if(bind(dataSock, (struct sockaddr*) &sa2, sizeof(sa2)) == -1){
+	//abort, implement later
+  } 
+  //need a fork right here for control thread
+
+  int dataSock = socket(AF_INET, SOCK_DGRAM,0);//possibly make dataSock a member of Node
+  struct sockaddr_in sa;
+  sa.sin_family = AF_INET;
+  sa.sin_port = htons(me.dataPort);//binds to port specified in node struct
+  sa.sin_addr.s_addr = htonl(INADDR_ANY);//allows communication from any IP
+  if(bind(dataSock, (struct sockaddr*) &sa, sizeof(sa)) == -1){
+	//abort, implement later
+  }
+ 
+  while(1){
+	sockaddr *contRecv, *dataRecv;
+	socklen_t *contLen, *dataLen;
+	void *contBuf, *dataBuf;
+	recvfrom(controlSock, contBuf, 100/*prob needs to be changed*/,0, contRecv, contLen);
+	recvfrom(dataSock, dataBuf, 100/*prob needs to be changed*/,0, dataRecv, dataLen);
+	//need mechanism for retrieving command line args
+	
+  }
+
   return 1;
 }
 
