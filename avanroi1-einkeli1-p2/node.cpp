@@ -3,39 +3,58 @@
 using namespace std;
 
 //TO MAKE UDP SOCKET socket(AF_INET, SOCK_DGRAM, 0))
-
+//NEXT STEPS: create fd_set that hold onto only its own socket
+//both data and control threads get a fd_set that just looks at itself and waits for someone to send it something.
+//to send our DVR packet to our neighboors, we need a well defined packet structure
+//packet tells us 1) what type of information (for control, we could see a DVR, addLink,removLink,generatePacket)
+//2) our DVR.
+//packet for Data tells us
+//8-bit Source node id
+//8-bit Destination node id
+//8-bit Packet id
+//8-bit TTL
+//Data
+//PRIORITY: get both threads to wait in a loop and look for data coming in from other nodes.
+//SECOND PRIORITY: at some interval, we can use timers and take their difference, ex 3 seconds, send our DVR to our neighoboors
+//Note: to send data to a udp socket, we only need to specify port and correct IP by using *(gethostbyname(me.hostName.c_str)->h_addr)
+Node me;
+int controlSocket;
+int dataSock;
 int main(int argc,char * argv[])
 {
-  Node me = init(argv);
- 
-  int controlSock = socket(AF_INET, SOCK_DGRAM,0);//possibly make controlSock a member of Node
+  me = init(argv);
+  controlSocket = socket(AF_INET, SOCK_DGRAM,0);//possibly make controlSock a member of Node
   struct sockaddr_in sa2;
+  hostent * host = gethostbyname(me.hostName.c_str());
   sa2.sin_family = AF_INET;
   sa2.sin_port = htons(me.controlPort);//binds to port specified in node struct
-  sa2.sin_addr.s_addr = htonl(INADDR_ANY);//allows communicaiton from any IP
-  if(bind(dataSock, (struct sockaddr*) &sa2, sizeof(sa2)) == -1){
-	//abort, implement later
-  } 
-  //need a fork right here for control thread
+  memcpy(&sa2.sin_addr,host->h_addr,host->h_length);
 
-  int dataSock = socket(AF_INET, SOCK_DGRAM,0);//possibly make dataSock a member of Node
+  if(bind(controlSocket, (struct sockaddr*) &sa2, sizeof(sa2)) == -1){
+    perror("Error binding  controlport");
+    exit(-1);
+  } 
+
+  dataSock = socket(AF_INET, SOCK_DGRAM,0);//possibly make dataSock a member of Node
   struct sockaddr_in sa;
   sa.sin_family = AF_INET;
   sa.sin_port = htons(me.dataPort);//binds to port specified in node struct
-  sa.sin_addr.s_addr = htonl(INADDR_ANY);//allows communication from any IP
+  memcpy(&sa.sin_addr,host->h_addr,host->h_length);
+  
   if(bind(dataSock, (struct sockaddr*) &sa, sizeof(sa)) == -1){
 	//abort, implement later
+    perror("error binding dataport");
+    exit(-1);
   }
- 
-  while(1){
-	sockaddr *contRecv, *dataRecv;
-	socklen_t *contLen, *dataLen;
-	void *contBuf, *dataBuf;
-	recvfrom(controlSock, contBuf, 100/*prob needs to be changed*/,0, contRecv, contLen);
-	recvfrom(dataSock, dataBuf, 100/*prob needs to be changed*/,0, dataRecv, dataLen);
-	//need mechanism for retrieving command line args
-	
-  }
+  
+  
+  
+  //thread control(waitforUpdates);//tells one thread to wait in the control state`
+  thread data(waitforData);
+  //control.join();
+  data.join();
+  //we need to use select here
+  
 
   return 1;
 }
@@ -118,6 +137,70 @@ vector<string> split(char delim,string s)
     }
   hold.push_back(s.substr(startIndex,index));
   return hold;
+}
+
+int waitforUpdates()
+{
+  fd_set contSet;
+  //int x = controlSocket;
+  FD_ZERO(&contSet);
+  FD_SET(controlSocket,&contSet);
+  struct timespec tmv;
+  tmv.tv_sec = 1;
+  int status2;
+  sockaddr *contRecv;
+  socklen_t *contLen;
+  void * controlBuf;
+  cout<<"before the flood";
+  while(1)
+    {
+      cerr<<"howdy";
+      status2 = pselect(controlSocket+1,&contSet,NULL,NULL,&tmv,NULL);
+      
+      if(FD_ISSET(controlSocket,&contSet))
+	{
+	  cerr<<"wtf";
+	  recvfrom(controlSocket, controlBuf, 100/*prob needs to be changed*/,0, contRecv, contLen);
+	  //we have something to send via control!
+	}
+      else
+	{
+	  cerr<<("nothing to see here");
+	  //we have nothing to send via control, so lets send our distance vector!!
+	}
+
+      //select(...)
+    }
+  return 0;
+}
+
+void * waitforData()
+{
+  fd_set dataSet;
+  FD_ZERO(&dataSet);
+  struct timespec t;
+  t.tv_sec = 2;
+  int status;
+  sockaddr *dataRecv;
+  socklen_t *dataLen;
+  void * dataBuf;
+  cerr<<"hmmmm";
+  while(1){
+    FD_SET(dataSock,&dataSet);
+    status = pselect(dataSock+1,&dataSet,NULL,NULL,&t,NULL);
+    cerr<<"howdy";
+    if(FD_ISSET(dataSock,&dataSet))
+      {
+	recvfrom(dataSock, dataBuf, 100/*prob needs to be changed*/,0, dataRecv, dataLen);
+	//we have something to send via data!
+      }
+    else
+      {
+	printf("meat");
+	//we have nothing to send via data!
+      }
+    
+  }
 }
 
 int sendtext(int sd, char *msg)

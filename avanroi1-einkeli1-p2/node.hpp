@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <fcntl.h>
-#include <string>
+#include <cstring>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -13,6 +13,10 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <thread> // allows for threads!
+#include <pthread.h>
+#include <mutex>
+#include <time.h>
 
 #ifndef PORTS_H
 #define PORTS_H
@@ -49,5 +53,7 @@ struct Node {
 
 
 int sendtext(int sd, char *msg);
+int waitforUpdates();
+void * waitforData();
 Node init(char * argv[]);
 std::vector<std::string> split(char delim,std::string s);
