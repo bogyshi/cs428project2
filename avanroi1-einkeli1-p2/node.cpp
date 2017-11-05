@@ -17,40 +17,12 @@ using namespace std;
 //PRIORITY: get both threads to wait in a loop and look for data coming in from other nodes.
 //SECOND PRIORITY: at some interval, we can use timers and take their difference, ex 3 seconds, send our DVR to our neighoboors
 //Note: to send data to a udp socket, we only need to specify port and correct IP by using *(gethostbyname(me.hostName.c_str)->h_addr)
-Node me;
-int controlSocket;
-int dataSock;
 int main(int argc,char * argv[])
 {
-  me = init(argv);
-  controlSocket = socket(AF_INET, SOCK_DGRAM,0);//possibly make controlSock a member of Node
-  struct sockaddr_in sa2;
-  hostent * host = gethostbyname(me.hostName.c_str());
-  sa2.sin_family = AF_INET;
-  sa2.sin_port = htons(me.controlPort);//binds to port specified in node struct
-  memcpy(&sa2.sin_addr,host->h_addr,host->h_length);
-
-  if(bind(controlSocket, (struct sockaddr*) &sa2, sizeof(sa2)) == -1){
-    perror("Error binding  controlport");
-    exit(-1);
-  } 
-
-  dataSock = socket(AF_INET, SOCK_DGRAM,0);//possibly make dataSock a member of Node
-  struct sockaddr_in sa;
-  sa.sin_family = AF_INET;
-  sa.sin_port = htons(me.dataPort);//binds to port specified in node struct
-  memcpy(&sa.sin_addr,host->h_addr,host->h_length);
-  
-  if(bind(dataSock, (struct sockaddr*) &sa, sizeof(sa)) == -1){
-	//abort, implement later
-    perror("error binding dataport");
-    exit(-1);
-  }
-  
-  
-  
-  //thread control(waitforUpdates);//tells one thread to wait in the control state`
-  thread data(waitforData);
+  Node me = init(argv);
+    
+  thread control(waitforUpdates, &me);//tells one thread to wait in the control state`
+  thread data(waitforData, &me);
   //control.join();
   data.join();
   //we need to use select here
@@ -139,10 +111,22 @@ vector<string> split(char delim,string s)
   return hold;
 }
 
-int waitforUpdates()
+int waitforUpdates(Node* me)
 {
   fd_set contSet;
-  //int x = controlSocket;
+
+  int controlSocket = socket(AF_INET, SOCK_DGRAM,0);
+  struct sockaddr_in sa2;
+  hostent * host = gethostbyname(me->hostName.c_str());
+  sa2.sin_family = AF_INET;
+  sa2.sin_port = htons(me->controlPort);//binds to port specified in node struct
+  memcpy(&sa2.sin_addr,host->h_addr,host->h_length);
+
+  if(bind(controlSocket, (struct sockaddr*) &sa2, sizeof(sa2)) == -1){
+    perror("Error binding  controlport");
+    exit(-1);
+  } 
+
   FD_ZERO(&contSet);
   FD_SET(controlSocket,&contSet);
   struct timespec tmv;
@@ -174,10 +158,22 @@ int waitforUpdates()
   return 0;
 }
 
-void * waitforData()
+void * waitforData(Node* me)
 {
   fd_set dataSet;
   FD_ZERO(&dataSet);
+
+  int dataSock = socket(AF_INET, SOCK_DGRAM,0);//possibly make dataSock a member of Node
+  struct sockaddr_in sa;
+  sa.sin_family = AF_INET;
+  sa.sin_port = htons(me->dataPort);//binds to port specified in node struct
+  memcpy(&sa.sin_addr,host->h_addr,host->h_length);
+  
+  if(bind(dataSock, (struct sockaddr*) &sa, sizeof(sa)) == -1){
+    perror("error binding dataport");
+    exit(-1);
+  }
+
   struct timespec t;
   t.tv_sec = 2;
   int status;
