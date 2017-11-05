@@ -153,7 +153,6 @@ void waitforUpdates(Node* me)
 
       //select(...)
     }
-  return 0;
 }
 
 void waitforData(Node* me)
