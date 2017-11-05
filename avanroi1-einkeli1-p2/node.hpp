@@ -41,6 +41,7 @@ struct DV {
 #define NODE_H
 
 struct Node {
+  Node(char* argv[]);
   int id;
   std::vector<int> neighboors;
   int dataPort;

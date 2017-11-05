@@ -19,24 +19,23 @@ using namespace std;
 //Note: to send data to a udp socket, we only need to specify port and correct IP by using *(gethostbyname(me.hostName.c_str)->h_addr)
 int main(int argc,char * argv[])
 {
-  Node me = init(argv);
+  Node me = new Node(argv);
     
   thread control(waitforUpdates, &me);//tells one thread to wait in the control state`
   thread data(waitforData, &me);
-  //control.join();
+
+  control.join();
   data.join();
-  //we need to use select here
   
 
   return 1;
 }
 
-Node init(char * argv[])
+Node::Node(char * argv[])
 {
   string line;
   vector<string> configs;
   ifstream configfile (argv[2]);
-  Node itsAme;
   bool isMade = false;
   int i = 0;
   PORTS temp;
@@ -50,13 +49,13 @@ Node init(char * argv[])
 	  tempPort = stoi(configs[0]);
 	  temp.controlPort = stoi(configs[2]);
 	  temp.dataPort = stoi(configs[3]);
-	  itsAme.mapPorts.insert(pair<int,PORTS>(tempPort,temp));
+	  this.mapPorts.insert(pair<int,PORTS>(tempPort,temp));
 	  if(stoi(configs[0])==stoi(argv[1]))
 	    {
-	      itsAme.id = stoi(configs[0]);
-	      itsAme.hostName=configs[1];
-	      itsAme.controlPort=stoi(configs[2]);
-	      itsAme.dataPort=stoi(configs[3]);
+	      this.id = stoi(configs[0]);
+	      this.hostName=configs[1];
+	      this.controlPort=stoi(configs[2]);
+	      this.dataPort=stoi(configs[3]);
 	      while(4+i<configs.size())
 		{
 		  //cout<<configs[4+i];
@@ -67,7 +66,7 @@ Node init(char * argv[])
 	      myself.dest=itsAme.id;
 	      myself.cost=0;
 	      myself.nextHop=-1;//always through controlport
-	      itsAme.DVT.push_back(myself);
+	      this.DVT.push_back(myself);
 	      isMade=true;
 	    }
 	}
@@ -79,17 +78,16 @@ Node init(char * argv[])
       for(;i<itsAme.neighboors.size();++i)
 	{
 	  DV neighbr;
-	  neighbr.dest=itsAme.neighboors[i];
+	  neighbr.dest=this.neighboors[i];
 	  neighbr.cost=1;
-	  neighbr.nextHop=itsAme.neighboors[i];
-	  itsAme.DVT.push_back(neighbr);
+	  neighbr.nextHop=this.neighboors[i];
+	  this.DVT.push_back(neighbr);
 	}
     }
   else
     {
       cerr<<"FILE NOT AVAILABLE"<<argv[2];
     }
-  return itsAme;
 }
 
 vector<string> split(char delim,string s)
