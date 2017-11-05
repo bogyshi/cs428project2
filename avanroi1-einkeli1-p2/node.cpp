@@ -19,15 +19,15 @@ using namespace std;
 //Note: to send data to a udp socket, we only need to specify port and correct IP by using *(gethostbyname(me.hostName.c_str)->h_addr)
 int main(int argc,char * argv[])
 {
-  Node me = new Node(argv);
+  Node* me = new Node(argv);
     
-  thread control(waitforUpdates, &me);//tells one thread to wait in the control state`
-  thread data(waitforData, &me);
+  thread control(waitforUpdates, me);//tells one thread to wait in the control state`
+  thread data(waitforData, me);
 
   control.join();
   data.join();
   
-
+  delete me; 
   return 1;
 }
 
