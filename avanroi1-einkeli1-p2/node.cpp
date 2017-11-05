@@ -49,24 +49,24 @@ Node::Node(char * argv[])
 	  tempPort = stoi(configs[0]);
 	  temp.controlPort = stoi(configs[2]);
 	  temp.dataPort = stoi(configs[3]);
-	  this.mapPorts.insert(pair<int,PORTS>(tempPort,temp));
+	  this->mapPorts.insert(pair<int,PORTS>(tempPort,temp));
 	  if(stoi(configs[0])==stoi(argv[1]))
 	    {
-	      this.id = stoi(configs[0]);
-	      this.hostName=configs[1];
-	      this.controlPort=stoi(configs[2]);
-	      this.dataPort=stoi(configs[3]);
+	      this->id = stoi(configs[0]);
+	      this->hostName=configs[1];
+	      this->controlPort=stoi(configs[2]);
+	      this->dataPort=stoi(configs[3]);
 	      while(4+i<configs.size())
 		{
 		  //cout<<configs[4+i];
-		  itsAme.neighboors.push_back(stoi(configs[4+i]));
+		  this->neighboors.push_back(stoi(configs[4+i]));
 		  i++;
 		}
 	      DV myself;
-	      myself.dest=itsAme.id;
+	      myself.dest=this->id;
 	      myself.cost=0;
 	      myself.nextHop=-1;//always through controlport
-	      this.DVT.push_back(myself);
+	      this->DVT.push_back(myself);
 	      isMade=true;
 	    }
 	}
@@ -75,13 +75,13 @@ Node::Node(char * argv[])
 	  cerr<<"NODE ID "<<stoi(argv[1])<<" is not available";
 	}
       i = 0;
-      for(;i<itsAme.neighboors.size();++i)
+      for(;i<this->neighboors.size();++i)
 	{
 	  DV neighbr;
-	  neighbr.dest=this.neighboors[i];
+	  neighbr.dest=this->neighboors[i];
 	  neighbr.cost=1;
-	  neighbr.nextHop=this.neighboors[i];
-	  this.DVT.push_back(neighbr);
+	  neighbr.nextHop=this->neighboors[i];
+	  this->DVT.push_back(neighbr);
 	}
     }
   else
@@ -163,6 +163,7 @@ void * waitforData(Node* me)
 
   int dataSock = socket(AF_INET, SOCK_DGRAM,0);//possibly make dataSock a member of Node
   struct sockaddr_in sa;
+  hostent * host = gethostbyname(me->hostName.c_str());
   sa.sin_family = AF_INET;
   sa.sin_port = htons(me->dataPort);//binds to port specified in node struct
   memcpy(&sa.sin_addr,host->h_addr,host->h_length);
