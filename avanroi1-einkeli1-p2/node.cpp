@@ -20,6 +20,7 @@ using namespace std;
 Node me;
 int controlSocket;
 int dataSock;
+
 int main(int argc,char * argv[])
 {
   me = init(argv);
@@ -205,5 +206,5 @@ void * waitforData()
 
 int sendtext(int sd, char *msg)
 {
-
+  return 1;
 }
