@@ -54,7 +54,7 @@ struct Node {
 
 
 int sendtext(int sd, char *msg);
-int waitforUpdates();
-void * waitforData();
+void waitforUpdates(Node* me);
+void waitforData(Node* me);
 Node init(char * argv[]);
 std::vector<std::string> split(char delim,std::string s);
