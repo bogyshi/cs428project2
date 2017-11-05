@@ -109,7 +109,7 @@ vector<string> split(char delim,string s)
   return hold;
 }
 
-int waitforUpdates(Node* me)
+void waitforUpdates(Node* me)
 {
   fd_set contSet;
 
@@ -156,7 +156,7 @@ int waitforUpdates(Node* me)
   return 0;
 }
 
-void * waitforData(Node* me)
+void waitforData(Node* me)
 {
   fd_set dataSet;
   FD_ZERO(&dataSet);
