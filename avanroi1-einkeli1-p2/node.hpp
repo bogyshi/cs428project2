@@ -55,8 +55,8 @@ struct Node {
 
 
 int sendtext(int sd, char *msg);
-void parseControlPacket(Node me, char * info);
-void sendControlPacket(Node me);
+void parseControlPacket(Node * me, std::string info);
+void sendControlPacket(Node * me, int socket);
 void handleDataPacket(Node me, char * payload);
 std::string alterOrReadTable(int code, std::string changer, Node * me);
 void waitforUpdates(Node* me);

@@ -17,7 +17,7 @@ using namespace std;
 //PRIORITY: get both threads to wait in a loop and look for data coming in from other nodes.
 //SECOND PRIORITY: at some interval, we can use timers and take their difference, ex 3 seconds, send our DVR to our neighoboors
 //Note: to send data to a udp socket, we only need to specify port and correct IP by using *(gethostbyname(me.hostName.c_str)->h_addr)
-
+int MAXSIZE=500;
 int main(int argc,char * argv[])
 {
   Node* me = new Node(argv);
@@ -127,29 +127,47 @@ void waitforUpdates(Node* me)
 
   FD_ZERO(&contSet);
   FD_SET(controlSocket,&contSet);
-  struct timespec tmv;
-  tmv.tv_sec = 1;
+  struct timeval tmv;
+  
   int status2;
-  sockaddr *contRecv;
-  socklen_t *contLen;
-  void * controlBuf;
+  sockaddr_in contRecv;
+  socklen_t contLen = sizeof(contRecv);
+  memset(&contRecv,0,contLen);
+  char controlBuf[MAXSIZE];
+  string payload;
+  memset(&controlBuf,0,MAXSIZE);
+  time_t start=time(0);
+  time_t end;
   while(1)
     {
-      status2 = pselect(controlSocket+1,&contSet,NULL,NULL,&tmv,NULL);
+      tmv.tv_sec = 2;
+      tmv.tv_usec = 1;
+      status2 = select(controlSocket+1,&contSet,NULL,NULL,&tmv);
       
       if(FD_ISSET(controlSocket,&contSet))
 	{
-	  cerr<<"wtf";
-	  recvfrom(controlSocket, controlBuf, 100/*prob needs to be changed*/,0, contRecv, contLen);
+	  cerr<<"received data";
+	  if(recvfrom(controlSocket, controlBuf, MAXSIZE/*prob needs to be changed*/,0, (sockaddr *)&contRecv, &contLen)<0)
+	    {
+	      perror("Something wrong happened while receiving packet");
+	    }
+	  payload=controlBuf;
+	  parseControlPacket(me, payload);
+	  //cerr<<payload;
 	  //we have something to send via control!
 	}
-      else
+      end=time(0);
+      if(difftime(end,start)*1000>2)
 	{
 	  cerr<<("nothing to see here");
-	  //we have nothing to send via control, so lets send our distance vector!!
+	  sendControlPacket(me,controlSocket);
+	  start=end;
+	  //we have nothing to recv via control, so lets send our distance vector!!
 	}
 
       //select(...)
+      FD_ZERO(&contSet);
+      FD_SET(controlSocket,&contSet);
     }
 }
 
@@ -198,29 +216,29 @@ int sendtext(int sd, char *msg)
   return 1;
 }
 
-void parseControlPacket(Node * me, char * info)
+void parseControlPacket(Node *me, string info)
 {
   const char type = info[0];
-  string temp;
+  string temp= info.substr(1,info.length());
   vector<string> toBeAdded;
   vector<string> toBeRemoved;
   vector<string> toSend;
+  //cerr<<info;
   switch(type)
     {
     case '0': //DVTable received
-      //tableAccess(info+1);
+      temp = temp.substr(1,temp.length());
+      alterOrReadTable(1,temp,me);
+      //alterOrReadTable()
       break;
     case '1':
-      temp =(info+1);
       toBeAdded = split(',',temp);//2 arguments, source, us,and destination
       break;
     case '2':
-      temp =(info+1);
       toBeRemoved = split(',',temp); //2 arguments, source, us,and destination
       //alterOrReadTable()
       break;
     case '3':
-      temp =(info+1);
       toSend = split(',',temp);//2 arguments, source, us,and destination
       //sharedInt = stoi(configs[1]);//notifies data thread we want to send a packet to destation
       break;
@@ -236,15 +254,28 @@ char id = 0 1 2 3 (0=DVT,1=removeLink,2=addLink,3=generatePacket)
 void sendControlPacket(Node * me,int socket)//only packet we ever send is our DVT
 {
   string ourDVT = alterOrReadTable(0,"",me);//this may be blocked waiting for lock
-  struct sockaddr_in * addr;
+  struct sockaddr_in addr;//maybe this should be a pointer
+  socklen_t szaddr = sizeof(addr); //IS THIS RIGHT?
+  memset(&addr,0,szaddr);
   hostent * host;
+  
+  int cntrlPrt;
+  string hostnm;
   /**sa2.sin_family = AF_INET;
   sa2.sin_port = htons(me.controlPort);//binds to port specified in node struct
   memcpy(&sa2.sin_addr,host->h_addr,host->h_length);*/
   for (int x : me->neighbors)
     {
-      /**host = gethostbyname("meatman");
-	 sendto(socket, (const void *)ourDVT.c_str(), ourDVT.length(), 0, struct sockaddr *addr, socklen_t length)*/
+      hostnm = me->mapPorts[x].hostName;
+      cntrlPrt = htons(me->mapPorts[x].controlPort);
+      addr.sin_family = AF_INET;
+      addr.sin_port=cntrlPrt;
+      host = gethostbyname(hostnm.c_str());
+      memcpy(&addr.sin_addr,host->h_addr,host->h_length);
+      if(sendto(socket,ourDVT.c_str(), ourDVT.length(), 0, (struct sockaddr *)&addr, szaddr)<0)
+	{
+	  perror("somehow it didnt send");
+	}
     }
   
 }
@@ -258,8 +289,13 @@ string alterOrReadTable(int code, string changer, Node * me)
   string resultString;
   vector<string> entries;
   vector<string> entry;
+  int dest;
+  int nextHop;
+  int cost;
   int i;
-  int sz;
+  int sz=(me->DVT).size();
+  bool found;
+  int incoming;
   switch(code)
     {
     case 0: //string will look like 0|d,h,c|d2,h2,c2|...|dn,hn,cn
@@ -271,8 +307,14 @@ string alterOrReadTable(int code, string changer, Node * me)
 	  if(i==0)
 	    {
 	      resultString.append("|");
+	      resultString.append(to_string(x.dest));
+	      resultString.append(",");
+	      resultString.append(to_string(x.nextHop));
+	      resultString.append(",");
+	      resultString.append(to_string(x.cost));
+	      resultString.append("|");
 	    }
-	  else if(i<sz)
+	  else if(i<sz-1)
 	    {
 	      resultString.append(to_string(x.dest));
 	      resultString.append(",");
@@ -294,6 +336,52 @@ string alterOrReadTable(int code, string changer, Node * me)
       // iterate through entries, convert to string, append to return str
       break;
     case 1:
+      cerr<<"\n"<<changer<<"\n";
+      entries=split('|',changer);
+      found=false;
+      for (string x : entries)
+	{
+	  entry = split(',',x);
+	  if(stoi(entry[1])==-1)
+	    {
+	      incoming=stoi(entry[0]);
+	      break;
+	    }
+	}
+      for (string x : entries)
+	{
+	  entry = split(',',x);
+	  dest=stoi(entry[0]);
+	  nextHop=stoi(entry[1]);
+	  cost=stoi(entry[2]);
+	  found=false;
+	  i=0;
+	  for (;i<sz;i++)
+	    {
+	      if((me->DVT[i]).dest==dest)//the incoming vector has a way to get to the same dest
+		{
+		  if(cost<((me->DVT[i]).cost-1))//cheaper cost
+		    {
+		      (me->DVT[i]).cost=cost+1;
+		      (me->DVT[i]).nextHop=incoming;
+		    }
+		  else if(me->DVT[i].nextHop==incoming)//if table entry uses incoming node, and node has updated cost for the same destination as that entry
+		    {
+		      me->DVT[i].cost=cost+1;
+		    }
+		  found=true;
+		}
+
+	    }
+	  if(found==false)//the current entry from the new table has dest unkown to old table
+	    {
+	      DV temp;
+	      temp.dest = dest;
+	      temp.nextHop = incoming;
+	      temp.cost = cost+1;
+	      me->DVT.push_back(temp);
+	    }
+	}
       //iterate through incoming changer string containing DVT, do DVT algo, update table by changing the cost / next hop. and so on wont return anythin
       break;
     case 2:
