@@ -40,17 +40,16 @@ Node::Node(char * argv[])
   bool isMade = false;
   int i = 0;
   PORTS temp;
-  int tempPort;
   if(configfile.is_open())
     {
       while(getline(configfile,line))
 	{
 	  configs = (split(',',line));
 	  i=0;
-	  tempPort = stoi(configs[0]);
 	  temp.controlPort = stoi(configs[2]);
 	  temp.dataPort = stoi(configs[3]);
-	  this->mapPorts.insert(pair<int,PORTS>(tempPort,temp));
+	  temp.hostName = configs[1];
+	  this->mapPorts.insert(pair<int,PORTS>(stoi(configs[0]),temp));
 	  if(stoi(configs[0])==stoi(argv[1]))
 	    {
 	      this->id = stoi(configs[0]);
@@ -60,7 +59,7 @@ Node::Node(char * argv[])
 	      while(4+i<configs.size())
 		{
 		  //cout<<configs[4+i];
-		  this->neighboors.push_back(stoi(configs[4+i]));
+		  this->neighbors.push_back(stoi(configs[4+i]));
 		  i++;
 		}
 	      DV myself;
@@ -76,12 +75,12 @@ Node::Node(char * argv[])
 	  cerr<<"NODE ID "<<stoi(argv[1])<<" is not available";
 	}
       i = 0;
-      for(;i<this->neighboors.size();++i)
+      for(;i<this->neighbors.size();++i)
 	{
 	  DV neighbr;
-	  neighbr.dest=this->neighboors[i];
+	  neighbr.dest=this->neighbors[i];
 	  neighbr.cost=1;
-	  neighbr.nextHop=this->neighboors[i];
+	  neighbr.nextHop=this->neighbors[i];
 	  this->DVT.push_back(neighbr);
 	}
     }
@@ -146,7 +145,7 @@ void waitforUpdates(Node* me)
 	}
       else
 	{
-	  //cerr<<("nothing to see here");
+	  cerr<<("nothing to see here");
 	  //we have nothing to send via control, so lets send our distance vector!!
 	}
 
@@ -187,7 +186,7 @@ void waitforData(Node* me)
       }
     else
       {
-	//printf("meat");
+	printf("thisisdata");
 	//we have nothing to send via data!
       }
     
@@ -242,7 +241,7 @@ void sendControlPacket(Node * me,int socket)//only packet we ever send is our DV
   /**sa2.sin_family = AF_INET;
   sa2.sin_port = htons(me.controlPort);//binds to port specified in node struct
   memcpy(&sa2.sin_addr,host->h_addr,host->h_length);*/
-  for (int x : me->neighboors)
+  for (int x : me->neighbors)
     {
       /**host = gethostbyname("meatman");
 	 sendto(socket, (const void *)ourDVT.c_str(), ourDVT.length(), 0, struct sockaddr *addr, socklen_t length)*/

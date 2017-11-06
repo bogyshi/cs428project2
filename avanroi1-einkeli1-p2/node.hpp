@@ -24,6 +24,7 @@
 struct PORTS {
   int controlPort;
   int dataPort;
+  std::string hostName;
 };
 #endif
 
@@ -43,11 +44,11 @@ struct DV {
 struct Node {
   Node(char* argv[]);
   int id;
-  std::vector<int> neighboors;
   int dataPort;
   int controlPort;
   std::string hostName;
   std::vector<DV> DVT;
+  std::vector<int> neighbors;
   std::map<int,PORTS> mapPorts;
 };
 #endif
