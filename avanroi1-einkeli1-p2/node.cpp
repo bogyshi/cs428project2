@@ -133,10 +133,8 @@ void waitforUpdates(Node* me)
   sockaddr *contRecv;
   socklen_t *contLen;
   void * controlBuf;
-  cout<<"before the flood";
   while(1)
     {
-      cerr<<"howdy";
       status2 = pselect(controlSocket+1,&contSet,NULL,NULL,&tmv,NULL);
       
       if(FD_ISSET(controlSocket,&contSet))
@@ -147,7 +145,7 @@ void waitforUpdates(Node* me)
 	}
       else
 	{
-	  cerr<<("nothing to see here");
+	  //cerr<<("nothing to see here");
 	  //we have nothing to send via control, so lets send our distance vector!!
 	}
 
@@ -178,11 +176,9 @@ void waitforData(Node* me)
   sockaddr *dataRecv;
   socklen_t *dataLen;
   void * dataBuf;
-  cerr<<"hmmmm";
   while(1){
     FD_SET(dataSock,&dataSet);
     status = pselect(dataSock+1,&dataSet,NULL,NULL,&t,NULL);
-    cerr<<"howdy";
     if(FD_ISSET(dataSock,&dataSet))
       {
 	recvfrom(dataSock, dataBuf, 100/*prob needs to be changed*/,0, dataRecv, dataLen);
@@ -190,7 +186,7 @@ void waitforData(Node* me)
       }
     else
       {
-	printf("meat");
+	//printf("meat");
 	//we have nothing to send via data!
       }
     
