@@ -41,6 +41,7 @@ struct DV {
 #define NODE_H
 
 struct Node {
+  Node(char* argv[]);
   int id;
   std::vector<int> neighboors;
   int dataPort;
@@ -57,7 +58,6 @@ void parseControlPacket(Node me, char * info);
 void sendControlPacket(Node me);
 void handleDataPacket(Node me, char * payload);
 std::string alterOrReadTable(int code, std::string changer, Node * me);
-int waitforUpdates();
-void * waitforData();
-Node init(char * argv[]);
+void waitforUpdates(Node* me);
+void waitforData(Node* me);
 std::vector<std::string> split(char delim,std::string s);

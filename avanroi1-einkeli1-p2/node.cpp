@@ -17,55 +17,26 @@ using namespace std;
 //PRIORITY: get both threads to wait in a loop and look for data coming in from other nodes.
 //SECOND PRIORITY: at some interval, we can use timers and take their difference, ex 3 seconds, send our DVR to our neighoboors
 //Note: to send data to a udp socket, we only need to specify port and correct IP by using *(gethostbyname(me.hostName.c_str)->h_addr)
-Node me;
-int controlSocket;
-int dataSock;
 
 int main(int argc,char * argv[])
 {
-  me = init(argv);
-  controlSocket = socket(AF_INET, SOCK_DGRAM,0);//possibly make controlSock a member of Node
-  struct sockaddr_in sa2;
-  hostent * host = gethostbyname(me.hostName.c_str());
-  sa2.sin_family = AF_INET;
-  sa2.sin_port = htons(me.controlPort);//binds to port specified in node struct
-  memcpy(&sa2.sin_addr,host->h_addr,host->h_length);
+  Node* me = new Node(argv);
+    
+  thread control(waitforUpdates, me);//tells one thread to wait in the control state`
+  thread data(waitforData, me);
 
-  if(bind(controlSocket, (struct sockaddr*) &sa2, sizeof(sa2)) == -1){
-    perror("Error binding  controlport");
-    exit(-1);
-  } 
-
-  dataSock = socket(AF_INET, SOCK_DGRAM,0);//possibly make dataSock a member of Node
-  struct sockaddr_in sa;
-  sa.sin_family = AF_INET;
-  sa.sin_port = htons(me.dataPort);//binds to port specified in node struct
-  memcpy(&sa.sin_addr,host->h_addr,host->h_length);
-  
-  if(bind(dataSock, (struct sockaddr*) &sa, sizeof(sa)) == -1){
-	//abort, implement later
-    perror("error binding dataport");
-    exit(-1);
-  }
-  
-  
-  
-  //thread control(waitforUpdates);//tells one thread to wait in the control state`
-  thread data(waitforData);
-  //control.join();
+  control.join();
   data.join();
-  //we need to use select here
   
-
+  delete me; 
   return 1;
 }
 
-Node init(char * argv[])
+Node::Node(char * argv[])
 {
   string line;
   vector<string> configs;
   ifstream configfile (argv[2]);
-  Node itsAme;
   bool isMade = false;
   int i = 0;
   PORTS temp;
@@ -79,24 +50,24 @@ Node init(char * argv[])
 	  tempPort = stoi(configs[0]);
 	  temp.controlPort = stoi(configs[2]);
 	  temp.dataPort = stoi(configs[3]);
-	  itsAme.mapPorts.insert(pair<int,PORTS>(tempPort,temp));
+	  this->mapPorts.insert(pair<int,PORTS>(tempPort,temp));
 	  if(stoi(configs[0])==stoi(argv[1]))
 	    {
-	      itsAme.id = stoi(configs[0]);
-	      itsAme.hostName=configs[1];
-	      itsAme.controlPort=stoi(configs[2]);
-	      itsAme.dataPort=stoi(configs[3]);
+	      this->id = stoi(configs[0]);
+	      this->hostName=configs[1];
+	      this->controlPort=stoi(configs[2]);
+	      this->dataPort=stoi(configs[3]);
 	      while(4+i<configs.size())
 		{
 		  //cout<<configs[4+i];
-		  itsAme.neighboors.push_back(stoi(configs[4+i]));
+		  this->neighboors.push_back(stoi(configs[4+i]));
 		  i++;
 		}
 	      DV myself;
-	      myself.dest=itsAme.id;
+	      myself.dest=this->id;
 	      myself.cost=0;
 	      myself.nextHop=-1;//always through controlport
-	      itsAme.DVT.push_back(myself);
+	      this->DVT.push_back(myself);
 	      isMade=true;
 	    }
 	}
@@ -105,20 +76,19 @@ Node init(char * argv[])
 	  cerr<<"NODE ID "<<stoi(argv[1])<<" is not available";
 	}
       i = 0;
-      for(;i<itsAme.neighboors.size();++i)
+      for(;i<this->neighboors.size();++i)
 	{
 	  DV neighbr;
-	  neighbr.dest=itsAme.neighboors[i];
+	  neighbr.dest=this->neighboors[i];
 	  neighbr.cost=1;
-	  neighbr.nextHop=itsAme.neighboors[i];
-	  itsAme.DVT.push_back(neighbr);
+	  neighbr.nextHop=this->neighboors[i];
+	  this->DVT.push_back(neighbr);
 	}
     }
   else
     {
       cerr<<"FILE NOT AVAILABLE"<<argv[2];
     }
-  return itsAme;
 }
 
 vector<string> split(char delim,string s)
@@ -140,10 +110,22 @@ vector<string> split(char delim,string s)
   return hold;
 }
 
-int waitforUpdates()
+void waitforUpdates(Node* me)
 {
   fd_set contSet;
-  //int x = controlSocket;
+
+  int controlSocket = socket(AF_INET, SOCK_DGRAM,0);
+  struct sockaddr_in sa2;
+  hostent * host = gethostbyname(me->hostName.c_str());
+  sa2.sin_family = AF_INET;
+  sa2.sin_port = htons(me->controlPort);//binds to port specified in node struct
+  memcpy(&sa2.sin_addr,host->h_addr,host->h_length);
+
+  if(bind(controlSocket, (struct sockaddr*) &sa2, sizeof(sa2)) == -1){
+    perror("Error binding  controlport");
+    exit(-1);
+  } 
+
   FD_ZERO(&contSet);
   FD_SET(controlSocket,&contSet);
   struct timespec tmv;
@@ -152,10 +134,8 @@ int waitforUpdates()
   sockaddr *contRecv;
   socklen_t *contLen;
   void * controlBuf;
-  cout<<"before the flood";
   while(1)
     {
-      cerr<<"howdy";
       status2 = pselect(controlSocket+1,&contSet,NULL,NULL,&tmv,NULL);
       
       if(FD_ISSET(controlSocket,&contSet))
@@ -166,30 +146,40 @@ int waitforUpdates()
 	}
       else
 	{
-	  cerr<<("nothing to see here");
+	  //cerr<<("nothing to see here");
 	  //we have nothing to send via control, so lets send our distance vector!!
 	}
 
       //select(...)
     }
-  return 0;
 }
 
-void * waitforData()
+void waitforData(Node* me)
 {
   fd_set dataSet;
   FD_ZERO(&dataSet);
+
+  int dataSock = socket(AF_INET, SOCK_DGRAM,0);//possibly make dataSock a member of Node
+  struct sockaddr_in sa;
+  hostent * host = gethostbyname(me->hostName.c_str());
+  sa.sin_family = AF_INET;
+  sa.sin_port = htons(me->dataPort);//binds to port specified in node struct
+  memcpy(&sa.sin_addr,host->h_addr,host->h_length);
+  
+  if(bind(dataSock, (struct sockaddr*) &sa, sizeof(sa)) == -1){
+    perror("error binding dataport");
+    exit(-1);
+  }
+
   struct timespec t;
   t.tv_sec = 2;
   int status;
   sockaddr *dataRecv;
   socklen_t *dataLen;
   void * dataBuf;
-  cerr<<"hmmmm";
   while(1){
     FD_SET(dataSock,&dataSet);
     status = pselect(dataSock+1,&dataSet,NULL,NULL,&t,NULL);
-    cerr<<"howdy";
     if(FD_ISSET(dataSock,&dataSet))
       {
 	recvfrom(dataSock, dataBuf, 100/*prob needs to be changed*/,0, dataRecv, dataLen);
@@ -197,7 +187,7 @@ void * waitforData()
       }
     else
       {
-	printf("meat");
+	//printf("meat");
 	//we have nothing to send via data!
       }
     
