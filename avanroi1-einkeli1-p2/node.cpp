@@ -208,3 +208,116 @@ int sendtext(int sd, char *msg)
 {
   return 1;
 }
+
+void parseControlPacket(Node * me, char * info)
+{
+  const char type = info[0];
+  string temp;
+  vector<string> toBeAdded;
+  vector<string> toBeRemoved;
+  vector<string> toSend;
+  switch(type)
+    {
+    case '0': //DVTable received
+      //tableAccess(info+1);
+      break;
+    case '1':
+      temp =(info+1);
+      toBeAdded = split(',',temp);//2 arguments, source, us,and destination
+      break;
+    case '2':
+      temp =(info+1);
+      toBeRemoved = split(',',temp); //2 arguments, source, us,and destination
+      //alterOrReadTable()
+      break;
+    case '3':
+      temp =(info+1);
+      toSend = split(',',temp);//2 arguments, source, us,and destination
+      //sharedInt = stoi(configs[1]);//notifies data thread we want to send a packet to destation
+      break;
+    }
+}
+/**
+Control Packet:
+char id = 0 1 2 3 (0=DVT,1=removeLink,2=addLink,3=generatePacket)
+*newline
+...=data
+
+ **/
+void sendControlPacket(Node * me,int socket)//only packet we ever send is our DVT
+{
+  string ourDVT = alterOrReadTable(0,"",me);//this may be blocked waiting for lock
+  struct sockaddr_in * addr;
+  hostent * host;
+  /**sa2.sin_family = AF_INET;
+  sa2.sin_port = htons(me.controlPort);//binds to port specified in node struct
+  memcpy(&sa2.sin_addr,host->h_addr,host->h_length);*/
+  for (int x : me->neighboors)
+    {
+      /**host = gethostbyname("meatman");
+	 sendto(socket, (const void *)ourDVT.c_str(), ourDVT.length(), 0, struct sockaddr *addr, socklen_t length)*/
+    }
+  
+}
+void handleDataPacket(Node * me, char * payload)
+{
+
+}
+string alterOrReadTable(int code, string changer, Node * me)
+{
+  //mtx.lock();
+  string resultString;
+  vector<string> entries;
+  vector<string> entry;
+  int i;
+  int sz;
+  switch(code)
+    {
+    case 0: //string will look like 0|d,h,c|d2,h2,c2|...|dn,hn,cn
+      i=0;
+      sz=(me->DVT).size();
+      resultString.append(to_string(0));
+      for (DV x : me->DVT)
+	{
+	  if(i==0)
+	    {
+	      resultString.append("|");
+	    }
+	  else if(i<sz)
+	    {
+	      resultString.append(to_string(x.dest));
+	      resultString.append(",");
+	      resultString.append(to_string(x.nextHop));
+	      resultString.append(",");
+	      resultString.append(to_string(x.cost));
+	      resultString.append("|");
+	    }
+	  else
+	    {
+	      resultString.append(to_string(x.dest));
+	      resultString.append(",");
+	      resultString.append(to_string(x.nextHop));
+	      resultString.append(",");
+	      resultString.append(to_string(x.cost));
+	    }
+	  i+=1;
+	}
+      // iterate through entries, convert to string, append to return str
+      break;
+    case 1:
+      //iterate through incoming changer string containing DVT, do DVT algo, update table by changing the cost / next hop. and so on wont return anythin
+      break;
+    case 2:
+      //iterate through DVT, look for a match for the second argument in changer (split on delim ,) and remove from neighboor vector (if its there) wont return anything
+      break;
+    case 3:
+      //same as 2, but we are adding, so add to neighboor vector and update DVT wont return anything
+      break;
+    }
+  //mtx.unlock();
+  return resultString;
+}
+/**
+   code = 0 1 (0=read table (returns string representing table)1=updateTable DVT, 2 = remove particular connection, 3 = add particular connection)
+ */
+

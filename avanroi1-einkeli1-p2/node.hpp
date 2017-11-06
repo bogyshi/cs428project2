@@ -53,6 +53,10 @@ struct Node {
 
 
 int sendtext(int sd, char *msg);
+void parseControlPacket(Node me, char * info);
+void sendControlPacket(Node me);
+void handleDataPacket(Node me, char * payload);
+std::string alterOrReadTable(int code, std::string changer, Node * me);
 int waitforUpdates();
 void * waitforData();
 Node init(char * argv[]);
