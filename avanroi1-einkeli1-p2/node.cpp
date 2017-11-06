@@ -18,6 +18,8 @@ using namespace std;
 //SECOND PRIORITY: at some interval, we can use timers and take their difference, ex 3 seconds, send our DVR to our neighoboors
 //Note: to send data to a udp socket, we only need to specify port and correct IP by using *(gethostbyname(me.hostName.c_str)->h_addr)
 int MAXSIZE=500;
+mutex mtx;
+int sendData=-1;
 int main(int argc,char * argv[])
 {
   Node* me = new Node(argv);
@@ -231,16 +233,17 @@ void parseControlPacket(Node *me, string info)
       alterOrReadTable(1,temp,me);
       //alterOrReadTable()
       break;
-    case '1':
-      toBeAdded = split(',',temp);//2 arguments, source, us,and destination
+    case '1'://should look like code|source,dest(ADDING LINK)
+      
+      alterOrReadTable(3,temp.substr(1,temp.length()),me);
       break;
-    case '2':
-      toBeRemoved = split(',',temp); //2 arguments, source, us,and destination
+    case '2'://should looke like code|source,dest(REMOVING LINK)
+      alterOrReadTable(2,temp.substr(1,temp.length()),me); 
       //alterOrReadTable()
       break;
     case '3':
-      toSend = split(',',temp);//2 arguments, source, us,and destination
-      //sharedInt = stoi(configs[1]);//notifies data thread we want to send a packet to destation
+      toSend = split(',',temp.substr(1,temp.length()));
+      sendData=stoi(toSend[1]);//notifies data thread we want to send a packet to destation
       break;
     }
 }
@@ -264,6 +267,15 @@ void sendControlPacket(Node * me,int socket)//only packet we ever send is our DV
   /**sa2.sin_family = AF_INET;
   sa2.sin_port = htons(me.controlPort);//binds to port specified in node struct
   memcpy(&sa2.sin_addr,host->h_addr,host->h_length);*/
+  /**if(me->id==1)
+    {
+      parseControlPacket(me,"2|1,3");//testing remove link between 1 and 3
+    }
+  else if(me->id==3)
+    {
+
+      parseControlPacket(me,"2|3,1");//testing remove link between 3 and 1 WORKS
+      }*/
   for (int x : me->neighbors)
     {
       hostnm = me->mapPorts[x].hostName;
@@ -285,7 +297,7 @@ void handleDataPacket(Node * me, char * payload)
 }
 string alterOrReadTable(int code, string changer, Node * me)
 {
-  //mtx.lock();
+  
   string resultString;
   vector<string> entries;
   vector<string> entry;
@@ -293,6 +305,7 @@ string alterOrReadTable(int code, string changer, Node * me)
   int nextHop;
   int cost;
   int i;
+  mtx.lock();
   int sz=(me->DVT).size();
   bool found;
   int incoming;
@@ -385,13 +398,64 @@ string alterOrReadTable(int code, string changer, Node * me)
       //iterate through incoming changer string containing DVT, do DVT algo, update table by changing the cost / next hop. and so on wont return anythin
       break;
     case 2:
+      i=0;
+      found = false;
+      incoming = stoi(split(',',changer)[1]);
+      for(;i<sz;i++)
+	{
+	  if(me->DVT[i].dest==incoming && me->DVT[i].cost==1)
+	    {
+	      me->DVT.erase(me->DVT.begin()+i);
+	      found = true;
+	      break;
+	    }
+	}
+      if(found==false)
+	{
+	  cerr<<"Node id "<<incoming<<" is not a neighbor, no link to remove\n";
+	}
+      else
+	{
+	  i = 0;
+	  for (;i<me->neighbors.size();i++)
+	    {
+	      if(me->neighbors[i]==incoming)
+		{
+		  me->neighbors.erase(me->neighbors.begin()+i);
+		  break;
+		}
+	    }
+	}
       //iterate through DVT, look for a match for the second argument in changer (split on delim ,) and remove from neighboor vector (if its there) wont return anything
       break;
     case 3:
+      i=0;
+      found = false;
+      incoming = stoi(split(',',changer)[1]);
+      for(;i<sz;i++)
+	{
+	  if(me->DVT[i].dest==incoming&&me->DVT[i].cost!=1)
+	    {
+	      me->DVT[i].nextHop=incoming;
+	      me->DVT[i].cost=1;
+	      found = true;
+	      me->neighbors.push_back(incoming);
+	      break;
+	    }
+	}
+      if(found==false)
+	{
+	  DV temp;
+	  temp.dest=incoming;
+	  temp.nextHop=incoming;
+	  temp.cost=1;
+	  me->DVT.push_back(temp);
+	  me->neighbors.push_back(incoming);
+	}
       //same as 2, but we are adding, so add to neighboor vector and update DVT wont return anything
       break;
     }
-  //mtx.unlock();
+  mtx.unlock();
   return resultString;
 }
 /**
