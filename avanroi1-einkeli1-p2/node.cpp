@@ -20,6 +20,7 @@ using namespace std;
 int MAXSIZE=500;
 mutex mtx;
 int sendData=-1;
+int packet_ID = 1;
 int main(int argc,char * argv[])
 {
   Node* me = new Node(argv);
@@ -232,6 +233,11 @@ void waitforData(Node* me)
 		perror("Data packet dropped. TTl expired");
 	}
       }
+    if(sendData != -1){
+	vector<sring> message = {stoi(me->id),stoi(sendData),stoi(packet_ID),("Message: "+to_string(packet_ID), "15"};
+	packet_ID--;
+	sendText(me,message);	
+    }
     else
       {
 	printf("thisisdata");
