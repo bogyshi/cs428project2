@@ -21,6 +21,7 @@ int MAXSIZE=500;
 mutex mtx;
 mutex mtxFlag;
 int sendData=-1;
+int packet_ID = 1;
 int main(int argc,char * argv[])
 {
   Node* me = new Node(argv);
@@ -151,7 +152,7 @@ void waitforUpdates(Node* me)
       if(FD_ISSET(controlSocket,&contSet))
 	{
 	  cerr<<"received data";
-	  if(recvfrom(controlSocket, controlBuf, MAXSIZE/*prob needs to be changed*/,0, (sockaddr *)&contRecv, &contLen)<0)
+	  if(recvfrom(controlSocket, controlBuf, MAXSIZE,0, (sockaddr *)&contRecv, &contLen)<0)
 	    {
 	      perror("Something wrong happened while receiving packet");
 	    }
@@ -179,6 +180,7 @@ void waitforData(Node* me)
 {
   fd_set dataSet;
   FD_ZERO(&dataSet);
+  FD_SET(0,&dataset)
 
   int dataSock = socket(AF_INET, SOCK_DGRAM,0);//possibly make dataSock a member of Node
   struct sockaddr_in sa;
@@ -195,17 +197,49 @@ void waitforData(Node* me)
   struct timespec t;
   t.tv_sec = 2;
   int status;
-  sockaddr *dataRecv;
-  socklen_t *dataLen;
-  void * dataBuf;
+  sockaddr_in dataRecv;
+  socklen_t dataLen = sizeof(dataRecv);
+  memset(&dataRecv,0, dataLen);	
+  char dataBuf[MAXSIZE];
+  memset(&dataBuf,0,MAXSIZE);
+  string payload;
+
   while(1){
     FD_SET(dataSock,&dataSet);
     status = pselect(dataSock+1,&dataSet,NULL,NULL,&t,NULL);
     if(FD_ISSET(dataSock,&dataSet))
       {
-	recvfrom(dataSock, dataBuf, 100/*prob needs to be changed*/,0, dataRecv, dataLen);
-	//we have something to send via data!
+	if(recvfrom(dataSock, dataBuf, MAXSIZE,0, dataRecv, dataLen)<0)
+	{
+	   perror("Something wrong happened while receiving data packet");
+	}
+	payload = dataBuf;
+	vector<string> message = split('|',payload);
+	if(stoi(message[1]) == me->id){
+		//print message
+		cout<< message[3]<<endl;
+		for (int i = 5; i<message.size();i++){
+			cout<< message[i] << "-> ";
+		}
+		cout<<endl;
+	}
+	else if(stoi(message[4]) > 0 /*or 0 maybe*/){
+		//decrement ttl
+		message[4] = to_string(stoi(message[1])-1);
+		//add node id to payload
+		message.push_back(to_string(me->id));
+		//forward packet
+		sendText(me, message);
+	}
+	else{
+		perror("Data packet dropped. TTl expired");
+	}
       }
+    if(sendData != -1){
+	vector<sring> message = {stoi(me->id),stoi(sendData),stoi(packet_ID),("Message: "+to_string(packet_ID), "15"};
+	packet_ID--;
+	sendText(me,message);	
+    }
     else
       {
 	printf("thisisdata");
@@ -215,9 +249,52 @@ void waitforData(Node* me)
   }
 }
 
-int sendtext(int sd, char *msg)
+void sendText(Node* me, vector<string> message)
 {
-  return 1;
+  string ourDVT = alterOrReadTable(0,"",me);//this may be blocked waiting for lock
+  vector<string> dTable = split("|", ourDVT);
+  struct sockaddr_in addr;
+  socklen_t szaddr = sizeof(addr); 
+  memset(&addr,0,szaddr);
+  hostent * host;
+  
+  int dataPrt;
+  string hostnm;
+  int nextHost;
+  //this for loop determines the id of the next hop
+  for (int i = 1; i<dTable.size();i++){
+	vector<string> temp = split(",",dtable[i])
+	if(temp[0] ==message[1]){
+		nextHost= stoi(temp[1]);
+	} 
+  }
+  //int nextHost = message[1];
+
+  string finalMessage = message[0];
+  //this loop keeps appending the members of the message vector to get the final message
+  for(int i =1; i<message.size();i++){
+	finalMessage.append("|");
+	finalMessage.append(message[i]);
+  }
+
+  hostnm = me->mapPorts[nextHost].hostName;
+  dataPrt = htons(me->mapPorts[nextHost].dataPort);
+  addr.sin_family = AF_INET;
+  addr.sin_port=dataPrt;
+  host = gethostbyname(hostnm.c_str());
+  memcpy(&addr.sin_addr,host->h_addr,host->h_length);
+  if(sendto(socket,finalMessage.c_str(), finalMessage.length(), 0, (struct sockaddr *)&addr, szaddr)<0)
+	{
+	  perror("somehow it didnt send");
+	}
+    }
+}
+findNextHost(string DVT, int dest){
+  string temp = DVT.substr(1,info.length());
+  vector<string> DVtable =split("|", temp);
+  for(int i =0; i<DVtable.size();i++){
+
+  }
 }
 
 void parseControlPacket(Node *me, string info)
