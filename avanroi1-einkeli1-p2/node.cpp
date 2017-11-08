@@ -280,7 +280,7 @@ void sendControlPacket(Node * me,int socket)//only packet we ever send is our DV
 
       parseControlPacket(me,"2|3,1");//testing remove link between 3 and 1 WORKS
       }*/
-  cerr<<"IS THERE SOMETHIGN WRONG HERE?\n"<<ourDVT<<"\n";
+  //cerr<<"IS THERE SOMETHIGN WRONG HERE?\n"<<ourDVT<<"\n";
   for (int x : me->neighbors)
     {
       hostnm = me->mapPorts[x].hostName;
@@ -314,6 +314,8 @@ string alterOrReadTable(int code, string changer, Node * me)
   int sz=(me->DVT).size();
   bool found;
   int incoming;
+  if(changer[changer.size()-1]=='|')
+    changer.pop_back();
   switch(code)
     {
     case 0: //string will look like 0|d,h,c|d2,h2,c2|...|dn,hn,cn
