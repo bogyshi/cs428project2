@@ -214,6 +214,11 @@ void waitforData(Node* me)
 	vector<string> message = split('|',payload);
 	if(stoi(message[1]) == me->id){
 		//print message
+		cout<< message[3]<<endl;
+		for (int i = 5; i<message.size();i++){
+			cout<< message[i] << "-> ";
+		}
+		cout<<endl;
 	}
 	else if(stoi(message[4]) > 0 /*or 0 maybe*/){
 		//decrement ttl
@@ -239,6 +244,7 @@ void waitforData(Node* me)
 void sendText(Node* me, vector<string> message)
 {
   string ourDVT = alterOrReadTable(0,"",me);//this may be blocked waiting for lock
+  vector<string> dTable = split("|", ourDVT);
   struct sockaddr_in addr;
   socklen_t szaddr = sizeof(addr); 
   memset(&addr,0,szaddr);
@@ -246,15 +252,30 @@ void sendText(Node* me, vector<string> message)
   
   int dataPrt;
   string hostnm;
-  int nextHost = message[1];
+  int nextHost;
+  //this for loop determines the id of the next hop
+  for (int i = 1; i<dTable.size();i++){
+	vector<string> temp = split(",",dtable[i])
+	if(temp[0] ==message[1]){
+		nextHost= stoi(temp[1]);
+	} 
+  }
+  //int nextHost = message[1];
+
+  string finalMessage = message[0];
+  //this loop keeps appending the members of the message vector to get the final message
+  for(int i =1; i<message.size();i++){
+	finalMessage.append("|");
+	finalMessage.append(message[i]);
+  }
 
   hostnm = me->mapPorts[nextHost].hostName;
   dataPrt = htons(me->mapPorts[nextHost].dataPort);
   addr.sin_family = AF_INET;
-  addr.sin_port=cntrlPrt;
+  addr.sin_port=dataPrt;
   host = gethostbyname(hostnm.c_str());
   memcpy(&addr.sin_addr,host->h_addr,host->h_length);
-  if(sendto(socket,ourDVT.c_str(), ourDVT.length(), 0, (struct sockaddr *)&addr, szaddr)<0)
+  if(sendto(socket,finalMessage.c_str(), finalMessage.length(), 0, (struct sockaddr *)&addr, szaddr)<0)
 	{
 	  perror("somehow it didnt send");
 	}
