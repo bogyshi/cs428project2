@@ -19,6 +19,7 @@ using namespace std;
 //Note: to send data to a udp socket, we only need to specify port and correct IP by using *(gethostbyname(me.hostName.c_str)->h_addr)
 int MAXSIZE=500;
 mutex mtx;
+mutex mtxFlag;
 int sendData=-1;
 int main(int argc,char * argv[])
 {
@@ -135,7 +136,7 @@ void waitforUpdates(Node* me)
   sockaddr_in contRecv;
   socklen_t contLen = sizeof(contRecv);
   memset(&contRecv,0,contLen);
-  char controlBuf[MAXSIZE];
+  char controlBuf[MAXSIZE]={0};
   string payload;
   memset(&controlBuf,0,MAXSIZE);
   time_t start=time(0);
@@ -144,6 +145,7 @@ void waitforUpdates(Node* me)
     {
       tmv.tv_sec = 2;
       tmv.tv_usec = 1;
+      memset(controlBuf,0,MAXSIZE);
       status2 = select(controlSocket+1,&contSet,NULL,NULL,&tmv);
       
       if(FD_ISSET(controlSocket,&contSet))
@@ -234,7 +236,7 @@ void parseControlPacket(Node *me, string info)
       //alterOrReadTable()
       break;
     case '1'://should look like code|source,dest(ADDING LINK)
-      
+      cerr<<"THIS IS SOMETHING NEW\n"<<info<<"THIS IS SOMETHING"<<me->id<<"\n";
       alterOrReadTable(3,temp.substr(1,temp.length()),me);
       break;
     case '2'://should looke like code|source,dest(REMOVING LINK)
@@ -243,7 +245,9 @@ void parseControlPacket(Node *me, string info)
       break;
     case '3':
       toSend = split(',',temp.substr(1,temp.length()));
+      mtxFlag.lock();
       sendData=stoi(toSend[1]);//notifies data thread we want to send a packet to destation
+      mtxFlag.unlock();
       break;
     }
 }
@@ -276,6 +280,7 @@ void sendControlPacket(Node * me,int socket)//only packet we ever send is our DV
 
       parseControlPacket(me,"2|3,1");//testing remove link between 3 and 1 WORKS
       }*/
+  cerr<<"IS THERE SOMETHIGN WRONG HERE?\n"<<ourDVT<<"\n";
   for (int x : me->neighbors)
     {
       hostnm = me->mapPorts[x].hostName;
@@ -315,37 +320,48 @@ string alterOrReadTable(int code, string changer, Node * me)
       i=0;
       sz=(me->DVT).size();
       resultString.append(to_string(0));
-      for (DV x : me->DVT)
+      for (;i<sz;i++)
 	{
-	  if(i==0)
+	  if(me->DVT[i].cost<=15)
 	    {
-	      resultString.append("|");
-	      resultString.append(to_string(x.dest));
-	      resultString.append(",");
-	      resultString.append(to_string(x.nextHop));
-	      resultString.append(",");
-	      resultString.append(to_string(x.cost));
-	      resultString.append("|");
-	    }
-	  else if(i<sz-1)
-	    {
-	      resultString.append(to_string(x.dest));
-	      resultString.append(",");
-	      resultString.append(to_string(x.nextHop));
-	      resultString.append(",");
-	      resultString.append(to_string(x.cost));
-	      resultString.append("|");
+	      if(i==0)
+		{
+		  resultString.append("|");
+		  resultString.append(to_string(me->DVT[i].dest));
+		  resultString.append(",");
+		  resultString.append(to_string(me->DVT[i].nextHop));
+		  resultString.append(",");
+		  resultString.append(to_string(me->DVT[i].cost));
+		  resultString.append("|");
+		}
+	      else if(i<sz-1)
+		{
+		  resultString.append(to_string(me->DVT[i].dest));
+		  resultString.append(",");
+		  resultString.append(to_string(me->DVT[i].nextHop));
+		  resultString.append(",");
+		  resultString.append(to_string(me->DVT[i].cost));
+		  resultString.append("|");
+		}
+	      else
+		{
+		  resultString.append(to_string(me->DVT[i].dest));
+		  resultString.append(",");
+		  resultString.append(to_string(me->DVT[i].nextHop));
+		  resultString.append(",");
+		  resultString.append(to_string(me->DVT[i].cost));
+		}
 	    }
 	  else
 	    {
-	      resultString.append(to_string(x.dest));
-	      resultString.append(",");
-	      resultString.append(to_string(x.nextHop));
-	      resultString.append(",");
-	      resultString.append(to_string(x.cost));
+	      me->DVT.erase(me->DVT.begin()+i);
+	      i--;
+	      sz--;
 	    }
-	  i+=1;
+	  
 	}
+      if(resultString[resultString.size()-1]=='|')
+	resultString.pop_back();
       // iterate through entries, convert to string, append to return str
       break;
     case 1:
@@ -381,6 +397,8 @@ string alterOrReadTable(int code, string changer, Node * me)
 		  else if(me->DVT[i].nextHop==incoming)//if table entry uses incoming node, and node has updated cost for the same destination as that entry
 		    {
 		      me->DVT[i].cost=cost+1;
+		      //cerr<<"this is the culprit";
+		      //maybe this is unecessary
 		    }
 		  found=true;
 		}
@@ -405,6 +423,7 @@ string alterOrReadTable(int code, string changer, Node * me)
 	{
 	  if(me->DVT[i].dest==incoming && me->DVT[i].cost==1)
 	    {
+	      //cerr<<"REMOVING LINK";
 	      me->DVT.erase(me->DVT.begin()+i);
 	      found = true;
 	      break;
@@ -422,6 +441,7 @@ string alterOrReadTable(int code, string changer, Node * me)
 	      if(me->neighbors[i]==incoming)
 		{
 		  me->neighbors.erase(me->neighbors.begin()+i);
+		  //cerr<<"REMOVING LINK2";
 		  break;
 		}
 	    }
@@ -432,6 +452,7 @@ string alterOrReadTable(int code, string changer, Node * me)
       i=0;
       found = false;
       incoming = stoi(split(',',changer)[1]);
+      cerr<<"\n"<<changer<<"\n";
       for(;i<sz;i++)
 	{
 	  if(me->DVT[i].dest==incoming&&me->DVT[i].cost!=1)
