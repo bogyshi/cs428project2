@@ -114,6 +114,24 @@ int sendPayload(string payload,map<string,PORTS> mapPorts,string dest,string des
 	  perror("somehow it didnt send");
 	}
     }
+  else if(id == 3){
+      pl1 = payload+dest;
+      pl1+=",";
+      pl1+=dest2;
+      int cntrlPrt1;
+      string hostnm1;
+      hostnm1 = mapPorts[dest].hostName;
+      cntrlPrt1 = htons(mapPorts[dest].controlPort);
+      addr.sin_family = AF_INET;
+      addr.sin_port=cntrlPrt1;
+      cerr<<hostnm1;
+      host = gethostbyname(hostnm1.c_str());
+      memcpy(&addr.sin_addr,host->h_addr,host->h_length);
+      if(sendto(controlSocket,pl1.c_str(), pl1.length(), 0, (struct sockaddr *)&addr, szaddr)<0)
+	{
+	  perror("somehow it didnt send");
+	}
+  }
   return 1;
 }
 
