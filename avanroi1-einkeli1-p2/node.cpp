@@ -237,11 +237,11 @@ void waitforData(Node* me)
       }
     if(sendData != -1){
 	vector<sring> message = {stoi(me->id),stoi(sendData),stoi(packet_ID),("Message: "+to_string(packet_ID), "15"};
-	packet_ID--;
+	packet_ID++;
 	sendText(me,message);
-	mtx.lock();
+	mtxFlag.lock();
 	sendData = -1;
-	mtx.unlock();
+	mtxFlag.unlock();
 		
     }
     else
