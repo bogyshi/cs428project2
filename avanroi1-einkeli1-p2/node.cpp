@@ -205,7 +205,7 @@ void waitforData(Node* me)
   FD_SET(dataSock,&dataSet);
 
   while(1){
-    memset(dataBuf, 0, MAXSIZE);
+    memset(&dataBuf, 0, MAXSIZE);
     status = pselect(dataSock+1,&dataSet,NULL,NULL,&t,NULL);
     if(FD_ISSET(dataSock,&dataSet))
       {
