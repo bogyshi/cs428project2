@@ -92,7 +92,7 @@ int sendPayload(string payload,map<string,PORTS> mapPorts,string dest,string des
       cntrlPrt1 = htons(mapPorts[dest].controlPort);
       addr.sin_family = AF_INET;
       addr.sin_port=cntrlPrt1;
-      cerr<<hostnm1;
+      cerr<<hostnm1<<endl;
       host = gethostbyname(hostnm1.c_str());
       memcpy(&addr.sin_addr,host->h_addr,host->h_length);
       if(sendto(controlSocket,pl1.c_str(), pl1.length(), 0, (struct sockaddr *)&addr, szaddr)<0)
@@ -106,7 +106,7 @@ int sendPayload(string payload,map<string,PORTS> mapPorts,string dest,string des
       cntrlPrt2 = htons(mapPorts[dest2].controlPort);
       addr.sin_family = AF_INET;
       addr.sin_port=cntrlPrt2;
-      cerr<<hostnm2;
+      cerr<<hostnm2<<endl;
       host = gethostbyname(hostnm2.c_str());
       memcpy(&addr.sin_addr,host->h_addr,host->h_length);
       if(sendto(controlSocket,pl2.c_str(), pl2.length(), 0, (struct sockaddr *)&addr, szaddr)<0)
@@ -124,7 +124,7 @@ int sendPayload(string payload,map<string,PORTS> mapPorts,string dest,string des
       cntrlPrt1 = htons(mapPorts[dest].controlPort);
       addr.sin_family = AF_INET;
       addr.sin_port=cntrlPrt1;
-      cerr<<hostnm1;
+      cerr<<hostnm1<<endl;
       host = gethostbyname(hostnm1.c_str());
       memcpy(&addr.sin_addr,host->h_addr,host->h_length);
       if(sendto(controlSocket,pl1.c_str(), pl1.length(), 0, (struct sockaddr *)&addr, szaddr)<0)

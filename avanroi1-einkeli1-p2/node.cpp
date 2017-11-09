@@ -250,7 +250,6 @@ void waitforData(Node* me)
     }
     else
       {
-	printf("thisisdata");
 	//we have nothing to send via data!
       }
     FD_ZERO(&dataSet);
