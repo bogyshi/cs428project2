@@ -54,7 +54,7 @@ struct Node {
 #endif
 
 
-int sendtext(int sd, char *msg);
+void sendText(Node* me, std::vector<std::string> message, int socket);
 void parseControlPacket(Node * me, std::string info);
 void sendControlPacket(Node * me, int socket);
 void handleDataPacket(Node me, char * payload);

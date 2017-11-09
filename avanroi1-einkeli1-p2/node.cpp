@@ -180,7 +180,7 @@ void waitforData(Node* me)
 {
   fd_set dataSet;
   FD_ZERO(&dataSet);
-  FD_SET(0,&dataset)
+  FD_SET(0,&dataSet);
 
   int dataSock = socket(AF_INET, SOCK_DGRAM,0);//possibly make dataSock a member of Node
   struct sockaddr_in sa;
@@ -209,7 +209,7 @@ void waitforData(Node* me)
     status = pselect(dataSock+1,&dataSet,NULL,NULL,&t,NULL);
     if(FD_ISSET(dataSock,&dataSet))
       {
-	if(recvfrom(dataSock, dataBuf, MAXSIZE,0, dataRecv, dataLen)<0)
+	if(recvfrom(dataSock, dataBuf, MAXSIZE,0, (sockaddr *)&dataRecv, &dataLen)<0)
 	{
 	   perror("Something wrong happened while receiving data packet");
 	}
@@ -229,13 +229,14 @@ void waitforData(Node* me)
 		//add node id to payload
 		message.push_back(to_string(me->id));
 		//forward packet
-		sendText(me, message);
+		sendText(me, message, dataSock);
 	}
 	else{
 		perror("Data packet dropped. TTl expired");
 	}
       }
     if(sendData != -1){
+
 	vector<sring> message = {stoi(me->id),stoi(sendData),stoi(packet_ID),("Message: "+to_string(packet_ID), "15"};
 	packet_ID++;
 	sendText(me,message);
@@ -253,10 +254,10 @@ void waitforData(Node* me)
   }
 }
 
-void sendText(Node* me, vector<string> message)
+void sendText(Node* me, vector<string> message, int socket)
 {
   string ourDVT = alterOrReadTable(0,"",me);//this may be blocked waiting for lock
-  vector<string> dTable = split("|", ourDVT);
+  vector<string> dTable = split('|', ourDVT);
   struct sockaddr_in addr;
   socklen_t szaddr = sizeof(addr); 
   memset(&addr,0,szaddr);
@@ -267,7 +268,7 @@ void sendText(Node* me, vector<string> message)
   int nextHost;
   //this for loop determines the id of the next hop
   for (int i = 1; i<dTable.size();i++){
-	vector<string> temp = split(",",dtable[i])
+	vector<string> temp = split(',',dTable[i]);
 	if(temp[0] ==message[1]){
 		nextHost= stoi(temp[1]);
 	} 
@@ -291,15 +292,8 @@ void sendText(Node* me, vector<string> message)
 	{
 	  perror("somehow it didnt send");
 	}
-    }
 }
-findNextHost(string DVT, int dest){
-  string temp = DVT.substr(1,info.length());
-  vector<string> DVtable =split("|", temp);
-  for(int i =0; i<DVtable.size();i++){
 
-  }
-}
 
 void parseControlPacket(Node *me, string info)
 {
