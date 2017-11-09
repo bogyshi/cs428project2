@@ -215,6 +215,7 @@ void waitforData(Node* me)
 	}
 	payload = dataBuf;
 	vector<string> message = split('|',payload);
+	memset(dataBuf,0,MAZSIZE);
 	if(stoi(message[1]) == me->id){
 		//print message
 		cout<< message[3]<<endl;
