@@ -1,0 +1,8 @@
+Eric Inkelis:
+Coded Funcitons WaitForData and SendText (node.cpp)
+Coded part of Node::Node(node.cpp) and part of sendPayload (control.cpp)
+Assisted in debugging and testing
+
+Alexander Van Roijen:
+
+
