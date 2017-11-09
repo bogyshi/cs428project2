@@ -193,8 +193,8 @@ void waitforData(Node* me)
     exit(-1);
   }
 
-  struct timespec t;
-  t.tv_sec = 2;
+ 
+  
   int status;
   sockaddr_in dataRecv;
   socklen_t dataLen = sizeof(dataRecv);
@@ -206,7 +206,10 @@ void waitforData(Node* me)
 
   while(1){
     memset(&dataBuf, 0, MAXSIZE);
-    status = pselect(dataSock+1,&dataSet,NULL,NULL,&t,NULL);
+    struct timeval t;
+    t.tv_sec = 2;
+    t.tv_usec=1;
+    status = select(dataSock+1,&dataSet,NULL,NULL,&t);
     if(FD_ISSET(dataSock,&dataSet))
       {
 	if(recvfrom(dataSock, dataBuf, MAXSIZE,0, (sockaddr *)&dataRecv, &dataLen)<0)
@@ -226,7 +229,7 @@ void waitforData(Node* me)
 	}
 	else if(stoi(message[4]) > 0 /*or 0 maybe*/){
 		//decrement ttl
-		message[4] = to_string(stoi(message[1])-1);
+		message[4] = to_string(stoi(message[4])-1);
 		//add node id to payload
 		message.push_back(to_string(me->id));
 		//forward packet
@@ -282,17 +285,23 @@ void sendText(Node* me, vector<string> message, int socket)
 	finalMessage.append("|");
 	finalMessage.append(message[i]);
   }
-
-  hostnm = me->mapPorts[nextHost].hostName;
-  dataPrt = htons(me->mapPorts[nextHost].dataPort);
-  addr.sin_family = AF_INET;
-  addr.sin_port=dataPrt;
-  host = gethostbyname(hostnm.c_str());
-  memcpy(&addr.sin_addr,host->h_addr,host->h_length);
-  if(sendto(socket,finalMessage.c_str(), finalMessage.length(), 0, (struct sockaddr *)&addr, szaddr)<0)
+  if(nextHost==-1)
+    {
+      perror("NO PATH TO DEST: DROPPING PACKET\n");
+    }
+  else
+    {
+      hostnm = me->mapPorts[nextHost].hostName;
+      dataPrt = htons(me->mapPorts[nextHost].dataPort);
+      addr.sin_family = AF_INET;
+      addr.sin_port=dataPrt;
+      host = gethostbyname(hostnm.c_str());
+      memcpy(&addr.sin_addr,host->h_addr,host->h_length);
+      if(sendto(socket,finalMessage.c_str(), finalMessage.length(), 0, (struct sockaddr *)&addr, szaddr)<0)
 	{
 	  perror("somehow it didnt send");
 	}
+    }
 }
 
 
