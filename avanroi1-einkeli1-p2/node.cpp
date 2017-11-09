@@ -180,7 +180,6 @@ void waitforData(Node* me)
 {
   fd_set dataSet;
   FD_ZERO(&dataSet);
-  FD_SET(0,&dataSet);
 
   int dataSock = socket(AF_INET, SOCK_DGRAM,0);//possibly make dataSock a member of Node
   struct sockaddr_in sa;
@@ -203,9 +202,10 @@ void waitforData(Node* me)
   char dataBuf[MAXSIZE];
   memset(&dataBuf,0,MAXSIZE);
   string payload;
+  FD_SET(dataSock,&dataSet);
 
   while(1){
-    FD_SET(dataSock,&dataSet);
+    
     status = pselect(dataSock+1,&dataSet,NULL,NULL,&t,NULL);
     if(FD_ISSET(dataSock,&dataSet))
       {
@@ -221,6 +221,7 @@ void waitforData(Node* me)
 		for (int i = 5; i<message.size();i++){
 			cout<< message[i] << "-> ";
 		}
+		cout<< me->id;
 		cout<<endl;
 	}
 	else if(stoi(message[4]) > 0 /*or 0 maybe*/){
@@ -236,9 +237,9 @@ void waitforData(Node* me)
 	}
       }
     if(sendData != -1){
-	vector<sring> message = {stoi(me->id),stoi(sendData),stoi(packet_ID),("Message: "+to_string(packet_ID), "15"};
+	vector<string> message = {to_string(me->id),to_string(sendData),to_string(packet_ID),("Message: "+to_string(packet_ID)), "15", to_string(me->id)};
 	packet_ID++;
-	sendText(me,message);
+	sendText(me,message, dataSock);
 	mtxFlag.lock();
 	sendData = -1;
 	mtxFlag.unlock();
@@ -249,7 +250,8 @@ void waitforData(Node* me)
 	printf("thisisdata");
 	//we have nothing to send via data!
       }
-    
+    FD_ZERO(&dataSet);
+    FD_SET(dataSock,&dataSet);
   }
 }
 
