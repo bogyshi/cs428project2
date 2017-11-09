@@ -237,7 +237,7 @@ void waitforData(Node* me)
       }
     if(sendData != -1){
 	vector<string> message = {to_string(me->id),to_string(sendData),to_string(packet_ID),("Message: "+to_string(packet_ID)), "15"};
-	packet_ID--;
+	packet_ID++;
 	sendText(me,message, dataSock);	
     }
     else
