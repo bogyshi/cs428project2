@@ -205,7 +205,7 @@ void waitforData(Node* me)
   FD_SET(dataSock,&dataSet);
 
   while(1){
-    
+    memset(dataBuf, 0, MAXSIZE);
     status = pselect(dataSock+1,&dataSet,NULL,NULL,&t,NULL);
     if(FD_ISSET(dataSock,&dataSet))
       {
@@ -215,7 +215,6 @@ void waitforData(Node* me)
 	}
 	payload = dataBuf;
 	vector<string> message = split('|',payload);
-	memset(dataBuf,0,MAXSIZE);
 	if(stoi(message[1]) == me->id){
 		//print message
 		cout<< message[3]<<endl;
