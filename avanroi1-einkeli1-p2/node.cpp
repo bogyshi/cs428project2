@@ -151,7 +151,7 @@ void waitforUpdates(Node* me)
       
       if(FD_ISSET(controlSocket,&contSet))
 	{
-	  cerr<<"received data";
+	  //cerr<<"received data";
 	  if(recvfrom(controlSocket, controlBuf, MAXSIZE,0, (sockaddr *)&contRecv, &contLen)<0)
 	    {
 	      perror("Something wrong happened while receiving packet");
@@ -164,7 +164,7 @@ void waitforUpdates(Node* me)
       end=time(0);
       if(difftime(end,start)*1000>2)
 	{
-	  cerr<<("nothing to see here");
+	  //cerr<<("nothing to see here");
 	  sendControlPacket(me,controlSocket);
 	  start=end;
 	  //we have nothing to recv via control, so lets send our distance vector!!
@@ -312,7 +312,7 @@ void parseControlPacket(Node *me, string info)
       //alterOrReadTable()
       break;
     case '1'://should look like code|source,dest(ADDING LINK)
-      cerr<<"THIS IS SOMETHING NEW\n"<<info<<"THIS IS SOMETHING"<<me->id<<"\n";
+      //cerr<<"THIS IS SOMETHING NEW\n"<<info<<"THIS IS SOMETHING"<<me->id<<"\n";
       alterOrReadTable(3,temp.substr(1,temp.length()),me);
       break;
     case '2'://should looke like code|source,dest(REMOVING LINK)
@@ -356,7 +356,7 @@ void sendControlPacket(Node * me,int socket)//only packet we ever send is our DV
 
       parseControlPacket(me,"2|3,1");//testing remove link between 3 and 1 WORKS
       }*/
-  cerr<<"IS THERE SOMETHIGN WRONG HERE?\n"<<ourDVT<<"\n";
+  //cerr<<"IS THERE SOMETHIGN WRONG HERE?\n"<<ourDVT<<"\n";
   for (int x : me->neighbors)
     {
       hostnm = me->mapPorts[x].hostName;
@@ -398,41 +398,24 @@ string alterOrReadTable(int code, string changer, Node * me)
       resultString.append(to_string(0));
       for (;i<sz;i++)
 	{
-	  if(me->DVT[i].cost<=15)
+	  if(i==0)
 	    {
-	      if(i==0)
-		{
-		  resultString.append("|");
-		  resultString.append(to_string(me->DVT[i].dest));
-		  resultString.append(",");
-		  resultString.append(to_string(me->DVT[i].nextHop));
-		  resultString.append(",");
-		  resultString.append(to_string(me->DVT[i].cost));
-		  resultString.append("|");
-		}
-	      else if(i<sz-1)
-		{
-		  resultString.append(to_string(me->DVT[i].dest));
-		  resultString.append(",");
-		  resultString.append(to_string(me->DVT[i].nextHop));
-		  resultString.append(",");
-		  resultString.append(to_string(me->DVT[i].cost));
-		  resultString.append("|");
-		}
-	      else
-		{
-		  resultString.append(to_string(me->DVT[i].dest));
-		  resultString.append(",");
-		  resultString.append(to_string(me->DVT[i].nextHop));
-		  resultString.append(",");
-		  resultString.append(to_string(me->DVT[i].cost));
-		}
+	      resultString.append("|");
+	      resultString.append(to_string(me->DVT[i].dest));
+	      resultString.append(",");
+	      resultString.append(to_string(me->DVT[i].nextHop));
+	      resultString.append(",");
+	      resultString.append(to_string(me->DVT[i].cost));
+	      resultString.append("|");
 	    }
-	  else
+	  else if(i<sz)
 	    {
-	      me->DVT.erase(me->DVT.begin()+i);
-	      i--;
-	      sz--;
+	      resultString.append(to_string(me->DVT[i].dest));
+	      resultString.append(",");
+	      resultString.append(to_string(me->DVT[i].nextHop));
+	      resultString.append(",");
+	      resultString.append(to_string(me->DVT[i].cost));
+	      resultString.append("|");
 	    }
 	  
 	}
@@ -465,14 +448,27 @@ string alterOrReadTable(int code, string changer, Node * me)
 	    {
 	      if((me->DVT[i]).dest==dest)//the incoming vector has a way to get to the same dest
 		{
-		  if(cost<((me->DVT[i]).cost-1))//cheaper cost
+
+		  if(cost!=-1&&me->DVT[i].cost==-1)
+		    {
+		      (me->DVT[i]).cost=cost+1;
+		      (me->DVT[i]).nextHop=incoming;
+		    }
+		  else if(cost<((me->DVT[i]).cost-1) && cost!=-1)//cheaper cost
 		    {
 		      (me->DVT[i]).cost=cost+1;
 		      (me->DVT[i]).nextHop=incoming;
 		    }
 		  else if(me->DVT[i].nextHop==incoming)//if table entry uses incoming node, and node has updated cost for the same destination as that entry
 		    {
-		      me->DVT[i].cost=cost+1;
+		      if(cost==-1)
+			{
+			  me->DVT[i].cost=-1;
+			}
+		      else
+			{
+			  me->DVT[i].cost=cost+1;
+			}
 		      //cerr<<"this is the culprit";
 		      //maybe this is unecessary
 		    }
@@ -497,12 +493,12 @@ string alterOrReadTable(int code, string changer, Node * me)
       incoming = stoi(split(',',changer)[1]);
       for(;i<sz;i++)
 	{
-	  if(me->DVT[i].dest==incoming && me->DVT[i].cost==1)
+	  if(me->DVT[i].dest==incoming || me->DVT[i].nextHop==incoming)
 	    {
 	      //cerr<<"REMOVING LINK";
-	      me->DVT.erase(me->DVT.begin()+i);
+	      me->DVT[i].cost=-1;
+	      me->DVT[i].nextHop=-1;
 	      found = true;
-	      break;
 	    }
 	}
       if(found==false)
