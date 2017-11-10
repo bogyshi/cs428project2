@@ -1,5 +1,16 @@
 Eric Inkelis and Alexander Van Roijen presents...
 
+NOTE FOR GRADER: This program expects a valid configuration of the file
+
+nodeID#,remoteXX.cs.binghamton.edu,cntrlPrt#,dataPrt#,neighbors...
+...
+
+This program does not handle invalid requests, ex misspelled or mistyped commands
+or incorrect number of arguments
+
+//BEGIN TEXT WE USED DURING THE PROJECT
+
+
 NO FORKS! We actually ssh into different remote sessions and start each node listed in the config file manually.
 
 ex NodeID 1, Remote = 02, Control = 5001 Data = 5002, neighboor 1 = Node 3 ...
@@ -65,4 +76,3 @@ createNode(int nodeID, string remoteSession , vector<int> neighboors):
 		dataSocket = socket(0,UDPTYPE)
 		bind(controlSocket,temp.s_addr) // pass socket and IP of desired remote session given by config file
 		bind(dataSocket,temp.s_addr)
-		
