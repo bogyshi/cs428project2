@@ -4,5 +4,8 @@ Coded part of Node::Node(node.cpp) and part of sendPayload (control.cpp)
 Assisted in debugging and testing
 
 Alexander Van Roijen:
-
+Coded Control Functions of node.cpp, waitForUpdates, and all other functionality involving removing a link, creating a link, updating the table, 
+creating a string representing the table, notifying data thread packet was ready to send
+Created Control.cpp and Control.hpp
+creating configFiles and Makfile
 
